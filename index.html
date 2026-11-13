@@ -325,21 +325,23 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
     }
 
     function field(x, y, t, uy) {
-      // Bewegte Wellen: drei Bänder ziehen dauerhaft über die Fläche, mit deutlich hellen und dunklen Abschnitten
+      // Bewegte Wellen nur in der unteren Bildhälfte, mit deutlich hellen Lichtpaketen
       var Y = uy === undefined ? y : uy;
-      var w1 = 0.30 * Math.sin(x * 1.45 - t * 0.62) + 0.09 * Math.sin(x * 3.6 + t * 0.95) - 0.02;
-      var w2 = 0.26 * Math.sin(x * 1.05 + 1.9 - t * 0.48) + 0.07 * Math.sin(x * 4.1 - t * 1.1) + 0.42;
-      var w3 = 0.22 * Math.sin(x * 1.95 + 3.2 - t * 0.78) + 0.06 * Math.sin(x * 5.0 + t * 0.85) - 0.46;
-      var d1 = (Y - w1) / (0.17 + 0.05 * Math.sin(x * 2.3 + t * 0.7));
-      var d2 = (Y - w2) / 0.14, d3 = (Y - w3) / 0.13;
-      var n = Math.exp(-d1 * d1) * 1.15 + Math.exp(-d2 * d2) * 1.0 + Math.exp(-d3 * d3) * 0.95;
+      var w1 = 0.13 * Math.sin(x * 1.45 - t * 0.62) + 0.05 * Math.sin(x * 3.6 + t * 0.95) + 0.30;
+      var w2 = 0.12 * Math.sin(x * 1.05 + 1.9 - t * 0.48) + 0.04 * Math.sin(x * 4.1 - t * 1.1) + 0.58;
+      var w3 = 0.10 * Math.sin(x * 1.95 + 3.2 - t * 0.78) + 0.04 * Math.sin(x * 5.0 + t * 0.85) + 0.84;
+      var d1 = (Y - w1) / (0.10 + 0.03 * Math.sin(x * 2.3 + t * 0.7));
+      var d2 = (Y - w2) / 0.09, d3 = (Y - w3) / 0.085;
+      var n = Math.exp(-d1 * d1) * 1.15 + Math.exp(-d2 * d2) * 1.05 + Math.exp(-d3 * d3) * 0.95;
       var pulse = 0.5 + 0.5 * Math.sin(x * 2.4 - t * 0.9 + Math.sin(Y * 2.0 + t * 0.3));
-      // Lichtpakete: wandern mit den Wellen und machen einzelne Abschnitte deutlich heller
+      // Lichtpakete: wandern mit den Wellen und machen einzelne Abschnitte sehr hell
       var hl = 0.5 + 0.5 * Math.sin(x * 1.7 - t * 1.05 + Y * 1.3);
-      hl = hl * hl * hl * hl;
-      n *= 0.55 + 0.6 * pulse + 1.25 * hl;
-      n += 0.10 * (0.5 + 0.5 * Math.sin(x * 7.9 + Y * 6.1 - t * 0.95));   // feine Grundtextur
-      return n;
+      hl = hl * hl * hl;
+      n *= 0.55 + 0.6 * pulse + 1.9 * hl;
+      n += 0.08 * (0.5 + 0.5 * Math.sin(x * 7.9 + Y * 6.1 - t * 0.95));   // feine Grundtextur
+      // weicher Übergang: oberhalb der Bildmitte bleibt die Fläche frei
+      var f = (Y - 0.02) / 0.16; f = f < 0 ? 0 : (f > 1 ? 1 : f); f = f * f * (3 - 2 * f);
+      return n * f;
     }
 
     function draw(now) {
@@ -400,7 +402,7 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
               chr = lt.charAt(ix);
               // Helligkeit stark nichtlinear: dichte, sehr feine Textur, heller Kamm
               var al = g * g;                               // nichtlinear: der Kamm wird deutlich hell
-              var b = ((al * opC * 1.45) * (BUCK - 1)) | 0; if (b < 0) b = 0; if (b > BUCK - 1) b = BUCK - 1;
+              var b = ((al * opC * 1.8) * (BUCK - 1)) | 0; if (b < 0) b = 0; if (b > BUCK - 1) b = BUCK - 1;
               if (hs > 0.06) { b += (hs * 6.2 * hg) | 0; if (b > BUCK - 1) b = BUCK - 1; }
               var kl = lc[ix];
               var dxx = xx - 0.34, dyy = (yy + 0.06) * 1.35;
