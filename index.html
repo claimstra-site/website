@@ -348,7 +348,7 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
       ctx.fillRect(0, 0, W, H);
 
       var SC = 1.15, ky = SC * (H / W);
-      var lo = 0.33 + 0.35 * depth, span = 0.67 - 0.28 * depth;
+      var lo = 0.33 + 0.10 * depth, span = 0.67 - 0.08 * depth;
       var op = opa * mul;
       if (!lines.length) buildLines(cols);
 
@@ -461,7 +461,7 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
       last = now;
       var d = window.scrollY / (window.innerHeight * 0.85);
       depth += (Math.min(1, d) - depth) * 0.12;  // unterhalb des Heros zurücknehmen
-      mul = 1 - 0.87 * depth;
+      mul = 1 - 0.42 * depth;                  // Wellen bleiben auch beim Scrollen sichtbar, nur etwas ruhiger
       if (motion) reroll(now);
       mx += (tmx - mx) * 0.3;                   // Zeiger folgt direkt
       my += (tmy - my) * 0.3;
