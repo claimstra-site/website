@@ -325,7 +325,7 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
     }
 
     function field(x, y, t, uy) {
-      // Bewegte Wellen: drei Bänder ziehen dauerhaft über die Fläche, mit hellen und dunklen Abschnitten
+      // Bewegte Wellen: drei Bänder ziehen dauerhaft über die Fläche, mit deutlich hellen und dunklen Abschnitten
       var Y = uy === undefined ? y : uy;
       var w1 = 0.30 * Math.sin(x * 1.45 - t * 0.62) + 0.09 * Math.sin(x * 3.6 + t * 0.95) - 0.02;
       var w2 = 0.26 * Math.sin(x * 1.05 + 1.9 - t * 0.48) + 0.07 * Math.sin(x * 4.1 - t * 1.1) + 0.42;
@@ -334,7 +334,10 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
       var d2 = (Y - w2) / 0.14, d3 = (Y - w3) / 0.13;
       var n = Math.exp(-d1 * d1) * 1.15 + Math.exp(-d2 * d2) * 1.0 + Math.exp(-d3 * d3) * 0.95;
       var pulse = 0.5 + 0.5 * Math.sin(x * 2.4 - t * 0.9 + Math.sin(Y * 2.0 + t * 0.3));
-      n *= 0.65 + 0.7 * pulse;
+      // Lichtpakete: wandern mit den Wellen und machen einzelne Abschnitte deutlich heller
+      var hl = 0.5 + 0.5 * Math.sin(x * 1.7 - t * 1.05 + Y * 1.3);
+      hl = hl * hl * hl * hl;
+      n *= 0.55 + 0.6 * pulse + 1.25 * hl;
       n += 0.10 * (0.5 + 0.5 * Math.sin(x * 7.9 + Y * 6.1 - t * 0.95));   // feine Grundtextur
       return n;
     }
@@ -396,8 +399,8 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
             if (ce > 32 && g > 0.14 + 0.66 * dith) {        // Lücken und Leerzeichen bleiben leer
               chr = lt.charAt(ix);
               // Helligkeit stark nichtlinear: dichte, sehr feine Textur, heller Kamm
-              var al = g * g * g;                           // steil: nur der Kamm wird hell
-              var b = ((al * opC) * (BUCK - 1)) | 0; if (b < 0) b = 0;
+              var al = g * g;                               // nichtlinear: der Kamm wird deutlich hell
+              var b = ((al * opC * 1.45) * (BUCK - 1)) | 0; if (b < 0) b = 0; if (b > BUCK - 1) b = BUCK - 1;
               if (hs > 0.06) { b += (hs * 6.2 * hg) | 0; if (b > BUCK - 1) b = BUCK - 1; }
               var kl = lc[ix];
               var dxx = xx - 0.34, dyy = (yy + 0.06) * 1.35;
@@ -406,11 +409,14 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
               if (hw > 0.62) sty = 2 * BUCK + b;            // Zeigerkern: Astra-Gelb
               else if (kl === 2) sty = 2 * BUCK + b;        // astra, pathfinder, rollout — immer gelb
               else if (hw > 0.10) sty = BUCK + b;           // Hof des Zeigers: Signal-Blau
-              else if (kl === 1) sty = BUCK + b;            // Schlüsselwörter
               else if (kl === 3) sty = (b >> 1);            // Kommentare zurückgenommen
-              else if (depth < 0.4 && dxx * dxx + dyy * dyy < 0.0024 && g > 0.55) sty = 2 * BUCK + b;
-              else if (g > 0.90 && depth < 0.4) sty = BUCK + b;
-              else sty = b;
+              else {
+                // Farbzonen ziehen langsam mit: Abschnitte in Blau, Abschnitte in Gelb, dazwischen hell
+                var cz = Math.sin(xx * 1.6 - t * 0.38 + uy * 1.1) + 0.45 * Math.sin(xx * 3.3 + t * 0.21 - uy * 2.0);
+                if (cz > 0.35) sty = 2 * BUCK + b;          // Gelb
+                else if (cz < 0.05 || kl === 1) sty = BUCK + b;   // Blau
+                else sty = b;
+              }
             }
           }
 
