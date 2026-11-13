@@ -325,25 +325,17 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
     }
 
     function field(x, y, t, uy) {
-      var v = Math.sin(x * 3.05 + t * 0.72 + Math.sin(y * 2.25 - t * 0.38) * 1.55);
-      v += Math.sin(x * 1.35 - y * 2.05 + t * 0.60) * 0.82;
-      v += Math.sin(y * 5.4 + t * 1.15) * 0.34;
-      v += Math.sin(x * 7.9 + y * 6.1 - t * 0.95) * 0.22;   // Feinstruktur
-      v /= 2.2;
-      var n = 0.5 + 0.5 * v;
-
-      // Astra-Knoten: der künstliche Horizont, leicht rechts der Mitte
-      var dx = x - 0.34, dy = (y + 0.06) * 1.35;
-      var d2 = dx * dx + dy * dy;
-      n += Math.exp(-d2 * 6.2) * (0.5 + 0.26 * Math.sin(t * 1.15)) * (1 - 0.85 * depth);
-
-      // Hell-Dunkel-Bereiche: an einigen Stellen deutlich heller, an anderen dunkler
-      var Yp = uy === undefined ? y : uy;
-      var p1 = 0.5 + 0.5 * Math.sin(x * 2.6 + Yp * 1.9 + t * 0.33) * Math.sin(x * 1.4 - Yp * 3.1 - t * 0.27);
-      var p2 = 0.5 + 0.5 * Math.sin(x * 4.1 - Yp * 1.7 - t * 0.41 + Math.sin(Yp * 2.2 + t * 0.15));
-      var pulse = 0.65 * p1 + 0.35 * p2;
-      n *= 0.62 + 0.95 * pulse;
-      n *= 1 - 0.26 * Math.pow(Math.abs(uy === undefined ? y : uy), 3);
+      // Bewegte Wellen: drei Bänder ziehen dauerhaft über die Fläche, mit hellen und dunklen Abschnitten
+      var Y = uy === undefined ? y : uy;
+      var w1 = 0.30 * Math.sin(x * 1.45 - t * 0.62) + 0.09 * Math.sin(x * 3.6 + t * 0.95) - 0.02;
+      var w2 = 0.26 * Math.sin(x * 1.05 + 1.9 - t * 0.48) + 0.07 * Math.sin(x * 4.1 - t * 1.1) + 0.42;
+      var w3 = 0.22 * Math.sin(x * 1.95 + 3.2 - t * 0.78) + 0.06 * Math.sin(x * 5.0 + t * 0.85) - 0.46;
+      var d1 = (Y - w1) / (0.17 + 0.05 * Math.sin(x * 2.3 + t * 0.7));
+      var d2 = (Y - w2) / 0.14, d3 = (Y - w3) / 0.13;
+      var n = Math.exp(-d1 * d1) * 1.15 + Math.exp(-d2 * d2) * 1.0 + Math.exp(-d3 * d3) * 0.95;
+      var pulse = 0.5 + 0.5 * Math.sin(x * 2.4 - t * 0.9 + Math.sin(Y * 2.0 + t * 0.3));
+      n *= 0.65 + 0.7 * pulse;
+      n += 0.10 * (0.5 + 0.5 * Math.sin(x * 7.9 + Y * 6.1 - t * 0.95));   // feine Grundtextur
       return n;
     }
 
