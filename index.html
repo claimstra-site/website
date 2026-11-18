@@ -239,6 +239,14 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
       a = (i + 1) / BUCK;
       STY.push('rgba(72,206,255,' + Math.min(1, a * 1.35).toFixed(3) + ')'); // 2*BUCK .. Hellblau, kräftig
     }
+    for (i = 0; i < BUCK; i++) {
+      a = (i + 1) / BUCK;
+      STY.push('rgba(8,58,112,' + Math.min(1, a * 1.7).toFixed(3) + ')');    // 3*BUCK .. Schattenseite, tiefes Blau
+    }
+    for (i = 0; i < BUCK; i++) {
+      a = (i + 1) / BUCK;
+      STY.push('rgba(205,243,255,' + Math.min(1, a * 1.25).toFixed(3) + ')'); // 4*BUCK .. Lichtkante, fast weiß
+    }
 
     /* ---- Codezeilen tokenisieren: 0 normal · 1 Keyword · 2 Astra · 3 Kommentar ---- */
     function classify(line) {
@@ -323,6 +331,7 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
       buildLines(cols);
     }
 
+    var shade = 0.5;
     function field(x, y, t, uy) {
       // Bewegte Wellen nur in der unteren Bildhälfte, mit deutlich hellen Lichtpaketen
       var Y = uy === undefined ? y : uy;
@@ -331,7 +340,18 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
       var w3 = 0.16 * Math.sin(x * 1.95 + 3.2 - t * 0.78) + 0.06 * Math.sin(x * 5.0 + t * 0.85) + 0.82;
       var d1 = (Y - w1) / (0.10 + 0.03 * Math.sin(x * 2.3 + t * 0.7));
       var d2 = (Y - w2) / 0.09, d3 = (Y - w3) / 0.085;
-      var n = Math.exp(-d1 * d1) * 1.15 + Math.exp(-d2 * d2) * 1.05 + Math.exp(-d3 * d3) * 0.95;
+      var e1 = Math.exp(-d1 * d1), e2 = Math.exp(-d2 * d2), e3 = Math.exp(-d3 * d3);
+      var n = e1 * 1.15 + e2 * 1.05 + e3 * 0.95;
+      // Plastik: Steigung der Wellen (Ableitung nach x) und Lage zur Kammlinie ergeben eine Beleuchtung
+      // von oben links. Der Kamm und die dem Licht zugewandte Flanke werden hell, die Rückseite fällt in Schatten.
+      var s1 = 0.21 * 1.45 * Math.cos(x * 1.45 - t * 0.62) + 0.07 * 3.6 * Math.cos(x * 3.6 + t * 0.95);
+      var s2 = 0.19 * 1.05 * Math.cos(x * 1.05 + 1.9 - t * 0.48) + 0.06 * 4.1 * Math.cos(x * 4.1 - t * 1.1);
+      var s3 = 0.16 * 1.95 * Math.cos(x * 1.95 + 3.2 - t * 0.78) + 0.06 * 5.0 * Math.cos(x * 5.0 + t * 0.85);
+      var l1 = 0.5 - 0.42 * d1 - 0.55 * s1, l2 = 0.5 - 0.42 * d2 - 0.55 * s2, l3 = 0.5 - 0.42 * d3 - 0.55 * s3;
+      var ew = e1 + e2 + e3 + 1e-6;
+      shade = (l1 * e1 + l2 * e2 + l3 * e3) / ew;
+      shade += 0.12 * Math.sin(x * 1.6 - t * 0.38 + Y * 1.1);        // leichte Farbdrift
+      if (shade < 0) shade = 0; else if (shade > 1) shade = 1;
       var pulse = 0.5 + 0.5 * Math.sin(x * 2.4 - t * 0.9 + Math.sin(Y * 2.0 + t * 0.3));
       // Lichtpakete: wandern mit den Wellen und machen einzelne Abschnitte sehr hell
       var hl = 0.5 + 0.5 * Math.sin(x * 1.7 - t * 1.05 + Y * 1.3);
@@ -403,6 +423,7 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
               chr = lt.charAt(ix);
               // Helligkeit stark nichtlinear: dichte, sehr feine Textur, heller Kamm
               var al = g * g;                               // nichtlinear: der Kamm wird deutlich hell
+              if (hw < 0.10 && kl !== 2) al *= 0.55 + 0.9 * shade;   // Lichtseite heller, Schattenseite dunkler
               var b = ((al * opC * 2.0) * (BUCK - 1)) | 0; if (b < 0) b = 0; if (b > BUCK - 1) b = BUCK - 1;
               if (hs > 0.06) { b += (hs * 6.2 * hg) | 0; if (b > BUCK - 1) b = BUCK - 1; }
               var kl = lc[ix];
@@ -414,11 +435,12 @@ var CLAIMSTRA_ASTRA = /astra|pathfinder|rollout|claims?_?path/i;
               else if (hw > 0.10) sty = BUCK + b;           // Hof des Zeigers: Dunkelblau
               else if (kl === 3) sty = (b >> 1);            // Kommentare zurückgenommen
               else {
-                // Farbzonen ziehen langsam mit: Abschnitte in Hellblau, Abschnitte in Dunkelblau, dazwischen Weiß
-                var cz = Math.sin(xx * 1.6 - t * 0.38 + uy * 1.1) + 0.45 * Math.sin(xx * 3.3 + t * 0.21 - uy * 2.0);
-                if (cz > 0.35) sty = 2 * BUCK + b;          // Hellblau
-                else if (cz < 0.05 || kl === 1) sty = BUCK + b;   // Dunkelblau
-                else sty = b;
+                // Vier Farbstufen entlang der Beleuchtung: Schatten, Mittelblau, Hellblau, Lichtkante
+                var sv = shade - (kl === 1 ? 0.08 : 0) + (dith - 0.5) * 0.06;   // Schlüsselwörter etwas tiefer, Dither gegen harte Kanten
+                if (sv > 0.78) sty = 4 * BUCK + b;
+                else if (sv > 0.56) sty = 2 * BUCK + b;
+                else if (sv > 0.32) sty = BUCK + b;
+                else sty = 3 * BUCK + b;
               }
             }
           }
